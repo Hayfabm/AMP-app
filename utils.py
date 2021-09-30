@@ -11,7 +11,7 @@ def create_dataset(data_path: str) -> Tuple[List[str], List[int]]:
     return list(dataset["sequence"]), list(dataset["label"])
 
 
-def preprocess_word_embedding_encoding(
+def word_embedding(
     sequence: str,
     max_seq_length: int = 200,
     CONSIDERED_AA: str = "ACDEFGHIKLMNPQRSTVWYX",
@@ -26,11 +26,11 @@ def preprocess_word_embedding_encoding(
 
     # adapt sequence size
     if len(sequence) < max_seq_length:
-        # short the sequence
-        sequence = sequence[:max_seq_length]
+        # extent the sequence
+        sequence = sequence.zfill(max_seq_length)
     else:
         # pad the sequence
-        sequence = "0" + sequence * (max_seq_length - len(sequence))
+        sequence = "." + sequence * (max_seq_length - len(sequence))
 
     # encode sequence
     encoded_sequence = np.zeros((max_seq_length,))  # (200,)
