@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
     LSTM,
+    Activation,
     Bidirectional,
     Embedding,
     Dense,
@@ -27,7 +28,7 @@ import neptune.new as neptune
 from neptune.new.integrations.tensorflow_keras import NeptuneCallback
 
 
-from utils import create_dataset, preprocess_word_embedding_encoding
+from utils import create_dataset, word_embedding
 
 
 def build_model(top_words, maxlen, pool_length, embedding_size):
@@ -52,10 +53,11 @@ def build_model(top_words, maxlen, pool_length, embedding_size):
     custom_model.add(MaxPooling1D(pool_size=pool_length))
     custom_model.add(LSTM(100, return_sequences=False, name='lstm1'))
     #custom_model.add(LSTM(100, unroll=True,statful=False, dropout=0.1))
+    custom_model.add(Dropout(0.1))
     custom_model.add(Flatten())
-    custom_model.add(Dense(1, activation="sigmoid"))
-    custom_model.add(Dense(2, activation="softmax"))
-
+    custom_model.add(Dense(2, name='full_connect'))
+    custom_model.add(Activation('sigmoid'))
+    
     return custom_model
 
 
@@ -104,70 +106,69 @@ if __name__ == "__main__":
         "commented": "dropout to 0.1",
     }
 
-    for index in range(10):
-        # create dataset
-        sequences, labels= np.array(create_dataset(data_path=DATASET))
-        skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=1024)
-        for ((train, test), k) in zip(skf.split(sequences, labels), range(k_fold)):
+    # create dataset
+    sequences, labels= np.array(create_dataset(data_path=DATASET))
+    skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=1024)
+    for ((train, test), k) in zip(skf.split(sequences, labels), range(k_fold)):
 
-            # encode sequences
-            sequences_train_encoded = np.concatenate(
-                [
-                     preprocess_word_embedding_encoding(seq, MAX_SEQ_LENGTH, CONSIDERED_AA)
-                     for seq in sequences[train]
-                ],
-                axis=0,
-             )  
-            sequences_test_encoded = np.concatenate(
-                [
-                     preprocess_word_embedding_encoding(seq, MAX_SEQ_LENGTH, CONSIDERED_AA)
-                     for seq in sequences[test]
-                ],
-                axis=0,
-             )  
-
-             # encode labels
-            labels_train_encoded = to_categorical(
-                  labels[train], num_classes=2, dtype="float32"
+        # encode sequences
+        sequences_train_encoded = np.concatenate(
+            [
+                word_embedding(seq, MAX_SEQ_LENGTH, CONSIDERED_AA)
+                for seq in sequences[train]
+            ],
+            axis=0,
             )  
-            labels_test_encoded = to_categorical(
-                   labels[test], num_classes=2, dtype="float32",
+        sequences_test_encoded = np.concatenate(
+            [
+                word_embedding(seq, MAX_SEQ_LENGTH, CONSIDERED_AA)
+                for seq in sequences[test]
+            ],
+            axis=0,
             )  
 
-             # build model
-            model = build_model(VOCAB_SIZE, MAX_SEQ_LENGTH, POOL_LENGTH, EMBEDDING_SIZE)
-            print(model.summary())
+        # encode labels
+        labels_train_encoded = to_categorical(
+                labels[train], num_classes=2, dtype="float32"
+            )  
+        labels_test_encoded = to_categorical(
+                labels[test], num_classes=2, dtype="float32",
+            )  
 
-            # compile model
-            model.compile(
-                 loss="binary_crossentropy",
+        # build model
+        model = build_model(VOCAB_SIZE, MAX_SEQ_LENGTH, POOL_LENGTH, EMBEDDING_SIZE)
+        print(model.summary())
+
+        # compile model
+        model.compile(
+                loss="binary_crossentropy",
                 optimizer="adam",
-                 metrics=["accuracy", "AUC", "Precision", "Recall"]
-            )
+                metrics=["accuracy", "AUC", "Precision", "Recall"]
+        )
 
-            # define callbacks
-            my_callbacks = [
+        # define callbacks
+        my_callbacks = [
             # ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=3, verbose=1),
             # EarlyStopping(monitor="val_loss", min_delta=0, patience=5, verbose=1),
-                ModelCheckpoint(
-                    monitor="val_accuracy",
-                    mode="max",
-                    filepath=SAVED_MODEL_PATH,
-                    save_best_only=True,
-                ),
-                NeptuneCallback(run=run, base_namespace="metrics"),
-            ]
+            ModelCheckpoint(
+                monitor="val_accuracy",
+                mode="max",
+                filepath=SAVED_MODEL_PATH,
+                save_best_only=True,
+            ),
+            NeptuneCallback(run=run, base_namespace="metrics"),
+        ]
 
-            # fit the model
-            history = model.fit(
-                sequences_train_encoded,
-                labels_train_encoded,
-                batch_size=BATCH_SIZE,
-                epochs=NUM_EPOCHS,
-                verbose=1,
-                validation_data=(sequences_test_encoded, labels_test_encoded),
-                #callbacks=my_callbacks,
-            )       
+        # fit the model
+        history = model.fit(
+            sequences_train_encoded,
+            labels_train_encoded,
+            batch_size=BATCH_SIZE,
+            epochs=NUM_EPOCHS,
+            verbose=1,
+            validation_data=(sequences_test_encoded, labels_test_encoded),
+            callbacks=my_callbacks,
+        )       
 
-            run.stop()
+    run.stop()
 
