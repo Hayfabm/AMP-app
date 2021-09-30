@@ -28,9 +28,6 @@ def word_embedding(
     if len(sequence) < max_seq_length:
         # extent the sequence
         sequence = sequence.zfill(max_seq_length)
-    else:
-        # pad the sequence
-        sequence = "." + sequence * (max_seq_length - len(sequence))
 
     # encode sequence
     encoded_sequence = np.zeros((max_seq_length,))  # (200,)
