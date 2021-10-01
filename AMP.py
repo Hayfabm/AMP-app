@@ -24,11 +24,19 @@ from tensorflow.keras.callbacks import (
     ModelCheckpoint,
 )
 from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_auc_score, average_precision_score
 import neptune.new as neptune
 from neptune.new.integrations.tensorflow_keras import NeptuneCallback
 
+from tensorflow.compat.v1 import ConfigProto
+from tensorflow.compat.v1 import InteractiveSession
+config = ConfigProto()
+config.gpu_options.allow_growth = True
+session = InteractiveSession(config = config)
 
-from utils import create_dataset, word_embedding
+
+
+from utils import create_dataset, word_embedding, categorical_probas_to_classes, calculate_performace
 
 
 def build_model(top_words, maxlen, pool_length, embedding_size):
@@ -52,18 +60,40 @@ def build_model(top_words, maxlen, pool_length, embedding_size):
     )
     custom_model.add(MaxPooling1D(pool_size=pool_length))
     custom_model.add(LSTM(100, return_sequences=False, name='lstm1'))
-    #custom_model.add(LSTM(100, unroll=True,statful=False, dropout=0.1))
     custom_model.add(Dropout(0.1))
-    custom_model.add(Flatten())
     custom_model.add(Dense(2, name='full_connect'))
+    custom_model.add(Flatten())
     custom_model.add(Activation('sigmoid'))
     
     return custom_model
 
 
 if __name__ == "__main__":
+    path = "AMP/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    Rec_A = open(path + "Antimicrobial_recognition.txt" , "w")
+
+    Rec_A.writelines(
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+        + "\n"
+    )
+    Rec_A.write(
+        "   acc,            sensitivity,         specificity,          mcc           "
+        + "\n"
+    )
+    Rec_A.writelines(
+        "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+        + "\n"
+    )
+
+
+
     # init neptune logger
-    run = neptune.init(project='sophiedalentour/AMP-app')
+    run = neptune.init(project='sophiedalentour/AMP-app',
+                    tags=['epochs = 10', 'range(k_fold)']
+                )
 
     # set the seed
     SEED = 42
@@ -80,8 +110,11 @@ if __name__ == "__main__":
     VOCAB_SIZE = len(CONSIDERED_AA)
     POOL_LENGTH = 5
     EMBEDDING_SIZE = 128
-    k_fold = 10
 
+    # split_dataset parameters
+    k_fold = 10
+    scores = []
+    
     # training parameters
     BATCH_SIZE = 64
     NUM_EPOCHS = 10
@@ -103,7 +136,6 @@ if __name__ == "__main__":
         "num_epochs": NUM_EPOCHS,
         "saved_model_path": SAVED_MODEL_PATH,
         "dataset": DATASET,
-        "commented": "dropout to 0.1",
     }
 
     # create dataset
@@ -141,9 +173,9 @@ if __name__ == "__main__":
 
         # compile model
         model.compile(
-                loss="binary_crossentropy",
-                optimizer="adam",
-                metrics=["accuracy", "AUC", "Precision", "Recall"]
+            loss="binary_crossentropy",
+            optimizer="adam",
+            metrics=["accuracy", "AUC", "Precision", "Recall"]
         )
 
         # define callbacks
@@ -166,9 +198,56 @@ if __name__ == "__main__":
             batch_size=BATCH_SIZE,
             epochs=NUM_EPOCHS,
             verbose=1,
-            validation_data=(sequences_test_encoded, labels_test_encoded),
+            validation_split=0.1,
+            #validation_data=(sequences_test_encoded, labels_test_encoded),
             callbacks=my_callbacks,
         )       
 
-    run.stop()
+    #run.stop()
 
+        # prediction probability
+
+        predictions = model.predict(sequences_test_encoded)
+        predictions_prob = predictions[:, 1]
+
+        y_class = categorical_probas_to_classes(predictions)
+
+        # true_y_C_C=utils.categorical_probas_to_classes(true_y_C)
+        true_y = categorical_probas_to_classes(labels_test_encoded)
+        (  
+            acc, 
+            sensitivity, 
+            specificity, 
+            mcc,
+        ) = calculate_performace(len(y_class), y_class, true_y)
+        print("======================")
+        print("======================")
+        print(
+            "Iter " + ", " + str(k + 1) + " of " + str(k_fold) + "cv:"
+        )
+        print(
+            "\tacc='%0.4f', sn='%0.4f', sp='%0.4f', mcc='%0.4f'"
+            % (acc, sensitivity, specificity, mcc)
+        )
+        Rec_A.write(
+            str(acc)
+            + ","
+            + str(sensitivity)
+            + ","
+            + str(specificity)
+            + ","
+            + str(mcc)
+            + "\n"
+        )
+        scores.append(
+            [acc,  sensitivity, specificity, mcc]
+        )
+    scores = np.array(scores)
+
+    print(len(scores))
+
+    
+    Rec_A.close()
+    
+
+    run.stop()
