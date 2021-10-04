@@ -20,7 +20,7 @@ class AMPApp:
 
         # NOTE: if you have issues at this step, please use h5py 2.10.0
         # by running the following command: pip install h5py==2.10.0
-        self.model = load_model("logs/model_20211004154235.hdf5")
+        self.model = load_model("checkpoint/model_20211004154235.hdf5")
         print(self.model.summary())
 
     @staticmethod
