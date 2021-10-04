@@ -11,7 +11,8 @@ Follow this tutorial to make neptune logger works
 
 ## Overview 
 
-Antimicrobial resistance (AMR) has emerged as one of the principal public health problems of the 21st century that threatens the effective prevention and treatment of an ever-increasing range of infections caused by bacteria, parasites, viruses and fungi no longer susceptible to the common medicines used to treat them. The problem of AMR is especially urgent regarding antibiotic resistance in bacteria. Over several decades, to varying degrees, bacteria causing common or severe infections have developed resistance to each new antibiotic coming to market. Faced with this reality, Machine learning methods are now commonly adopted by wet-laboratory researchers to screen for promising candidates.
+Antimicrobial peptides (AMPs) are a class of small peptides that widely exist in nature and they are an important part of the innate immune system of different organisms. AMPs have a wide range of inhibitory effects against bacteria, fungi, parasites and viruses. The emergence of antibiotic-resistant microorganisms and the increasing of concerns about the use of antibiotics resulted in the development of AMPs, which have good application prospects in medicine, food, animal husbandry, agriculture and aquaculture. Faced with this reality, Machine learning methods are now commonly adopted by wet-laboratory researchers to screen for promising candidates.
+
 
 ## Goals
 
