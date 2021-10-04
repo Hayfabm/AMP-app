@@ -8,19 +8,16 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
     LSTM,
     Activation,
-    Bidirectional,
     Embedding,
     Dense,
     Dropout,
     Flatten,
     Convolution1D,
     MaxPooling1D,
-    BatchNormalization,
+ 
 )
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import (
-    ReduceLROnPlateau,
-    EarlyStopping,
     ModelCheckpoint,
 )
 from sklearn.model_selection import StratifiedKFold
@@ -28,12 +25,14 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 import neptune.new as neptune
 from neptune.new.integrations.tensorflow_keras import NeptuneCallback
 
+
+# =====Function call stack: train_function using keras===== #
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config = config)
-
+# ========================================================= #
 
 
 from utils import create_dataset, word_embedding, categorical_probas_to_classes, calculate_performace
@@ -80,14 +79,13 @@ if __name__ == "__main__":
         + "\n"
     )
     Rec_A.write(
-        "   acc,            sensitivity,         specificity,          mcc           "
+        "   acc,            sensitivity,         specificity,             mcc,             Roc_auc,          Roc_pr        "
         + "\n"
     )
     Rec_A.writelines(
         "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
         + "\n"
     )
-
 
 
     # init neptune logger
@@ -180,8 +178,6 @@ if __name__ == "__main__":
 
         # define callbacks
         my_callbacks = [
-            # ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=3, verbose=1),
-            # EarlyStopping(monitor="val_loss", min_delta=0, patience=5, verbose=1),
             ModelCheckpoint(
                 monitor="val_accuracy",
                 mode="max",
@@ -206,9 +202,10 @@ if __name__ == "__main__":
     #run.stop()
 
         # prediction probability
-
         predictions = model.predict(sequences_test_encoded)
         predictions_prob = predictions[:, 1]
+        roc_auc = roc_auc_score(labels[test], predictions_prob)
+        roc_pr = average_precision_score(labels[test], predictions_prob, pos_label='1')
 
         y_class = categorical_probas_to_classes(predictions)
 
@@ -229,23 +226,84 @@ if __name__ == "__main__":
             "\tacc='%0.4f', sn='%0.4f', sp='%0.4f', mcc='%0.4f'"
             % (acc, sensitivity, specificity, mcc)
         )
+        print("\trc_auc='%0.4f', rc_pr='%0.4f' " % (roc_auc, roc_pr))
+
         Rec_A.write(
             str(acc)
             + ","
-            + str(sensitivity)
+            + str(sensitivity) 
             + ","
             + str(specificity)
             + ","
             + str(mcc)
+            + ","
+            + str(roc_auc)
+            + ","
+            + str(roc_pr)
             + "\n"
         )
         scores.append(
-            [acc,  sensitivity, specificity, mcc]
+            [acc,  sensitivity, specificity, mcc, roc_auc, roc_pr]
         )
     scores = np.array(scores)
 
     print(len(scores))
+    print(
+        "acc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[0] * 100, np.std(scores, axis=0)[0] * 100)
+    )
+    print(
+        "sensitivity=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[1] * 100, np.std(scores, axis=0)[1] * 100)
+    )
+    print(
+        "specificity=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[2] * 100, np.std(scores, axis=0)[2] * 100)
+    )
+    print(
+        "mcc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[3] * 100, np.std(scores, axis=0)[3] * 100)
+    )
+    print(
+        "roc_auc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[4] * 100, np.std(scores, axis=0)[4] * 100)
+    )
+    print(
+        "roc_pr=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[5] * 100, np.std(scores, axis=0)[5] * 100)
+    )
 
+
+    Rec_A.write(
+        "acc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[0] * 100, np.std(scores, axis=0)[0] * 100)
+        + "\n"
+    )
+    Rec_A.write(
+        "sensitivity=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[1] * 100, np.std(scores, axis=0)[1] * 100)
+        + "\n"
+    )
+    Rec_A.write(
+        "specificity=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[2] * 100, np.std(scores, axis=0)[2] * 100)
+        + "\n"
+    )
+    Rec_A.write(
+        "mcc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[3] * 100, np.std(scores, axis=0)[3] * 100)
+        + "\n"
+    )
+    Rec_A.write(
+        "roc_auc=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[4] * 100, np.std(scores, axis=0)[4] * 100)
+        + "\n"
+    )
+    Rec_A.write(
+        "roc_pr=%.2f%% (+/- %.2f%%)"
+        % (np.mean(scores, axis=0)[5] * 100, np.std(scores, axis=0)[5] * 100)
+        + "\n"
+    )
     
     Rec_A.close()
     
