@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
+    InputLayer,
     LSTM,
     Activation,
     Embedding,
@@ -37,14 +38,13 @@ session = InteractiveSession(config = config)
 # ========================================================= #
 
 
-def build_model(top_words, maxlen, pool_length, embedding_size):
+def build_model(embedding_size, pool_length):
     """AMP model
     Combined CNN and LSTM, to predict Antimicrobial peptide
     """
     custom_model = Sequential(name="AMP-model")
-    # (4042, 200) <- 'preprocess' word embedding sequence encoding
-    custom_model.add(Embedding(top_words, embedding_size, input_length=maxlen))
-    # (4042, 200, 128) <- word embedding sequence encoding
+    custom_model.add(InputLayer(input_shape=(embedding_size, 1)))
+    # (4042, 200) <- word embedding sequence encoding
     custom_model.add(
         Convolution1D(
             64,
@@ -54,6 +54,7 @@ def build_model(top_words, maxlen, pool_length, embedding_size):
             activation="relu",
             kernel_initializer="random_uniform",
             name="convolution_1d_layer1",
+
         )
     )
     custom_model.add(MaxPooling1D(pool_size=pool_length))
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     MAX_SEQ_LENGTH = 200
     VOCAB_SIZE = len(CONSIDERED_AA)
     POOL_LENGTH = 5
-    EMBEDDING_SIZE = 128
+    EMBEDDING_SIZE = 1024
 
     # split_dataset parameters
     k_fold = 10
@@ -132,7 +133,6 @@ if __name__ == "__main__":
         "max_seq_length": MAX_SEQ_LENGTH,
         "vocab_size": VOCAB_SIZE,
         "pool_length": POOL_LENGTH,
-        "embedding_size": EMBEDDING_SIZE,
         "batch_size": BATCH_SIZE,
         "num_epochs": NUM_EPOCHS,
         "saved_model_path": SAVED_MODEL_PATH,
@@ -158,7 +158,6 @@ if __name__ == "__main__":
         )[
         POOL_MODE
         ]  
-
         # encode labels
         labels_train_encoded = to_categorical(
                 labels[train], num_classes=2, dtype="float32"
@@ -168,7 +167,7 @@ if __name__ == "__main__":
             )  
 
         # build model
-        model = build_model(VOCAB_SIZE, MAX_SEQ_LENGTH, POOL_LENGTH, EMBEDDING_SIZE)
+        model = build_model(MAX_SEQ_LENGTH, EMBEDDING_SIZE, POOL_LENGTH)
         print(model.summary())
 
         # compile model
