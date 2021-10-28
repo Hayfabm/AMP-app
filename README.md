@@ -3,11 +3,11 @@ deepchain.bio Antimicrobial peptide recognition
 
 ## Install AMP conda environment
 
-From the root of this repo, run conda env create -f environment.yaml
+From the root of this repo, ```run conda env create -f environment.yaml```
 
 Make sure you've tensorflow==2.5.0 installed
 
-Follow this tutorial to make neptune logger works
+Follow this [tutorial](https://docs.neptune.ai/integrations-and-supported-tools/model-training/tensorflow-keras#step-5-monitor-your-tensorflow-keras-training-in-neptune) to make neptune logger works
 
 ## Overview 
 
@@ -16,8 +16,8 @@ Antimicrobial peptides (AMPs) are a class of small peptides that widely exist in
 
 ## Goals
 
-*Prediction of antimicrobial peptide (AMP) based on contextual features in amino acid sequence. 
-*Design new antimicrobial peptide.
+Prediction of antimicrobial peptide (AMP) based on contextual features in amino acid sequence. 
+
 
 ## Specifications
 
