@@ -18,7 +18,7 @@ __Performance Details__: using the 10-Fold Cross-Validation, our model outperfor
 
 ## Specifications:
 
-This work is based on the paper : Deep learning improves antimicrobial peptide recognition.  Models and datasets are made freely available through the Antimicrobial Peptide Scanner vr.2 web server at www.ampscanner.com.
+This work is based on the paper : [Deep learning improves antimicrobial peptide recognition](https://academic.oup.com/bioinformatics/article/34/16/2740/4953367).  Models and datasets are made freely available through the Antimicrobial Peptide Scanner vr.2 web server at www.ampscanner.com.
 
 
 
