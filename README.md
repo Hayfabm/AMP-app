@@ -16,7 +16,7 @@ Antimicrobial peptides (__AMPs__) are a class of small peptides that widely exis
 __Performance Details__: using the 10-Fold Cross-Validation, our model outperforms __90.30%__ (_Standard Deviation_: +/-1.69%) Accuracy, __87.28%__ (+/-2.69%) Sensitivity, __93.32%__ (+/-2.38%) Specificity, __80.81__ (+/-3.36) MCC,  __96.02%__ (+/-0.99%) ROC_auc and __96.63%__ (+/-0.73%) ROC_pr.
 
 
-## Specifications:
+## Reference:
 This work is based on the paper : [Deep learning improves antimicrobial peptide recognition](https://academic.oup.com/bioinformatics/article/34/16/2740/4953367).  Models and datasets are made freely available through the Antimicrobial Peptide Scanner vr.2 web server at www.ampscanner.com.
 
 
